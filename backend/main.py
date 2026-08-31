@@ -4,6 +4,7 @@ import geopandas as gpd
 import os
 
 from backend.population_reallocation_api import router as reallocation_router
+from backend.realtime.router import router as realtime_router
 
 
 app = FastAPI(
@@ -22,6 +23,7 @@ app.add_middleware(
 )
 
 app.include_router(reallocation_router)
+app.include_router(realtime_router)
 
 
 ZONES_FILE = "data/processed/zones/assam_risk_zones.geojson"

@@ -963,5 +963,104 @@ async function loadPopulationReallocationDashboard() {
 // START APPLICATION
 // ============================================================
 
+async function loadRealtimeMonitoring() {
+    const statusEl = document.getElementById("realtime-status");
+    const alertsEl = document.getElementById("realtime-alerts");
+
+    if (!statusEl || !alertsEl) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/api/realtime/safe-zone-status`);
+        if (!response.ok) {
+            throw new Error("Realtime monitoring API unavailable");
+        }
+
+        const data = await response.json();
+        const zones = data.safe_zones || [];
+
+        statusEl.innerHTML = zones.map(zone => `
+            <div class="realtime-card">
+                <span class="badge ${zone.status || "stable"}">${zone.status || "stable"}</span>
+                <div class="label">${zone.safe_zone}</div>
+                <div class="value">${zone.alert_count || 0} active alerts</div>
+            </div>
+        `).join("") || "<div class='realtime-card'><span class='label'>No active hazards</span></div>";
+
+        const alertItems = [];
+        zones.forEach(zone => {
+            (zone.active_hazards || []).forEach(hazard => {
+                alertItems.push(`
+                    <div class="realtime-alert">
+                        <strong>${zone.safe_zone}</strong> is under <strong>${hazard.status}</strong> conditions from ${hazard.source}.\
+                        ${hazard.warning}
+                    </div>
+                `);
+            });
+        });
+
+        alertsEl.innerHTML = alertItems.length
+            ? alertItems.join("")
+            : "<div class='realtime-alert'>No hazard alerts detected. The system is in a stable near-real-time monitoring state.</div>";
+
+    } catch (error) {
+        console.error("Realtime monitoring failed:", error);
+        statusEl.innerHTML = `
+            <div class="realtime-card">
+                <span class="badge watch">watch</span>
+                <div class="label">Monitoring</div>
+                <div class="value">Unavailable</div>
+            </div>
+        `;
+        alertsEl.innerHTML = "<div class='realtime-alert'>The near-real-time monitoring service is temporarily unavailable.</div>";
+    }
+}
+
+async function connectRealtimeWebSocket() {
+    try {
+        const socket = new WebSocket(`${API_URL.replace("http", "ws")}/api/realtime/ws`);
+        socket.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            if (message.type === "realtime_update" && message.payload?.safe_zones) {
+                const statusEl = document.getElementById("realtime-status");
+                const alertsEl = document.getElementById("realtime-alerts");
+                if (statusEl && alertsEl) {
+                    const zones = message.payload.safe_zones || [];
+                    statusEl.innerHTML = zones.map(zone => `
+                        <div class="realtime-card">
+                            <span class="badge ${zone.status || "stable"}">${zone.status || "stable"}</span>
+                            <div class="label">${zone.safe_zone}</div>
+                            <div class="value">${zone.alert_count || 0} active alerts</div>
+                        </div>
+                    `).join("") || "<div class='realtime-card'><span class='label'>No active hazards</span></div>";
+
+                    const alertItems = [];
+                    zones.forEach(zone => {
+                        (zone.active_hazards || []).forEach(hazard => {
+                            alertItems.push(`
+                                <div class="realtime-alert">
+                                    <strong>${zone.safe_zone}</strong> is under <strong>${hazard.status}</strong> conditions from ${hazard.source}. ${hazard.warning}
+                                </div>
+                            `);
+                        });
+                    });
+
+                    alertsEl.innerHTML = alertItems.length
+                        ? alertItems.join("")
+                        : "<div class='realtime-alert'>No hazard alerts detected. The system is in a stable near-real-time monitoring state.</div>";
+                }
+            }
+        };
+        socket.onerror = () => {
+            console.warn("WebSocket unavailable; falling back to polling.");
+        };
+    } catch (error) {
+        console.warn("Realtime websocket could not be established:", error);
+    }
+}
+
 loadZones();
 loadPopulationReallocationDashboard();
+loadRealtimeMonitoring();
+connectRealtimeWebSocket();
