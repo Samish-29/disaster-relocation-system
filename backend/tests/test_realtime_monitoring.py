@@ -1,6 +1,8 @@
 from backend.realtime.engine import (
     evaluate_safe_zone_status,
+    get_realtime_status_snapshot,
     load_assam_district_names,
+    load_demo_event_feed,
     normalize_hazard_event,
 )
 
@@ -12,6 +14,22 @@ def test_uses_real_assam_district_names_for_monitoring():
     assert "Tinsukia" in district_names
     assert "Dibrugarh" in district_names
     assert "Safe Zone A" not in district_names
+
+
+def test_demo_hazards_are_district_specific():
+    snapshot = get_realtime_status_snapshot(
+        ["Dibrugarh", "Tezpur", "Karbi Anglong", "Barpeta", "Nagaon", "Kamrup"],
+        load_demo_event_feed(),
+    )
+
+    by_district = {item["safe_zone"]: item["alert_count"] for item in snapshot["safe_zones"]}
+
+    assert by_district["Dibrugarh"] >= 1
+    assert by_district["Tezpur"] >= 1
+    assert by_district["Karbi Anglong"] >= 1
+    assert by_district["Barpeta"] >= 1
+    assert by_district["Nagaon"] == 0
+    assert by_district["Kamrup"] == 0
 
 
 def test_normalize_hazard_event_sets_severity_and_status():

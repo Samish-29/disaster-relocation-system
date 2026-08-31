@@ -75,7 +75,7 @@ def get_safe_zones():
     return {
         "safe_zones": [
             {
-                "district": "Safe Zone A",
+                "district": "Dibrugarh",
                 "capacity": 7000,
                 "current_population": 2000,
                 "available_capacity": 5000,
@@ -88,7 +88,7 @@ def get_safe_zones():
                 "travel_time_minutes": 45,
             },
             {
-                "district": "Safe Zone B",
+                "district": "Tezpur",
                 "capacity": 6000,
                 "current_population": 3500,
                 "available_capacity": 2500,
@@ -101,7 +101,7 @@ def get_safe_zones():
                 "travel_time_minutes": 60,
             },
             {
-                "district": "Safe Zone C",
+                "district": "Karbi Anglong",
                 "capacity": 5000,
                 "current_population": 1200,
                 "available_capacity": 3800,
@@ -114,7 +114,7 @@ def get_safe_zones():
                 "travel_time_minutes": 75,
             },
             {
-                "district": "Safe Zone D",
+                "district": "Barpeta",
                 "capacity": 8000,
                 "current_population": 4000,
                 "available_capacity": 4000,
@@ -135,12 +135,20 @@ def get_red_zone_population():
     return {
         "red_zones": [
             {
-                "district": "Red Zone A",
+                "district": "Dibrugarh",
                 "population": 20000,
                 "risk_level": "HIGH",
                 "people_requiring_relocation": 20000,
                 "available_evacuation_points": 3,
                 "roads": ["NH 27", "State Highway 3"],
+            },
+            {
+                "district": "Tezpur",
+                "population": 18000,
+                "risk_level": "HIGH",
+                "people_requiring_relocation": 18000,
+                "available_evacuation_points": 2,
+                "roads": ["NH 15", "State Highway 5"],
             }
         ]
     }
@@ -151,11 +159,18 @@ def get_evacuation_routes():
     return {
         "routes": [
             {
-                "red_zone": "Red Zone A",
-                "safe_zone": "Safe Zone A",
+                "red_zone": "Dibrugarh",
+                "safe_zone": "Tezpur",
                 "primary_route": {"distance_km": 26, "travel_time_minutes": 45, "route_risk_score": 0.35},
                 "alternative_route": {"distance_km": 30, "travel_time_minutes": 52, "route_risk_score": 0.52},
                 "people_assigned": 7000,
+            },
+            {
+                "red_zone": "Tezpur",
+                "safe_zone": "Karbi Anglong",
+                "primary_route": {"distance_km": 42, "travel_time_minutes": 68, "route_risk_score": 0.41},
+                "alternative_route": {"distance_km": 49, "travel_time_minutes": 74, "route_risk_score": 0.58},
+                "people_assigned": 6000,
             }
         ]
     }
@@ -166,14 +181,14 @@ def get_resource_requirements():
     return {
         "safe_zone_resources": [
             {
-                "safe_zone": "Safe Zone A",
+                "safe_zone": "Dibrugarh",
                 "population_assigned": 7000,
-                **calculate_resource_requirements(7000, {"district": "Safe Zone A"}),
+                **calculate_resource_requirements(7000, {"district": "Dibrugarh"}),
             },
             {
-                "safe_zone": "Safe Zone B",
+                "safe_zone": "Tezpur",
                 "population_assigned": 6000,
-                **calculate_resource_requirements(6000, {"district": "Safe Zone B"}),
+                **calculate_resource_requirements(6000, {"district": "Tezpur"}),
             },
         ]
     }

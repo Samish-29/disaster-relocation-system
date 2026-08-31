@@ -35,6 +35,7 @@ def normalize_hazard_event(event: Dict[str, Any]) -> Dict[str, Any]:
     severity_score = float((event or {}).get("severity_score") or SEVERITY_MAP.get(raw_severity, SEVERITY_MAP["watch"]))
     distance_km = float((event or {}).get("distance_km") or 0.0)
     warning = str((event or {}).get("warning") or (event or {}).get("message") or "Hazard event reported").strip()
+    district = str((event or {}).get("district") or "").strip()
     now = datetime.now(timezone.utc).isoformat()
 
     status = "watch"
@@ -53,6 +54,7 @@ def normalize_hazard_event(event: Dict[str, Any]) -> Dict[str, Any]:
         "distance_km": distance_km,
         "warning": warning,
         "status": status,
+        "district": district,
         "timestamp": now,
     }
 
@@ -80,6 +82,22 @@ def evaluate_safe_zone_status(
     threshold_severity: float = 0.6,
 ) -> Dict[str, Any]:
     normalized = normalize_hazard_event(hazard_event)
+    event_district = str((hazard_event or {}).get("district") or normalized.get("district") or "").strip()
+
+    if event_district and event_district.lower() != str(safe_zone_name).lower():
+        return {
+            "safe_zone": safe_zone_name,
+            "hazard_type": normalized["hazard_type"],
+            "status": "stable",
+            "impact_level": "low",
+            "severity_score": normalized["severity_score"],
+            "distance_km": normalized["distance_km"],
+            "source": normalized["source"],
+            "warning": normalized["warning"],
+            "triggered": False,
+            "timestamp": normalized["timestamp"],
+        }
+
     is_near = normalized["distance_km"] <= threshold_distance_km
     is_severe = normalized["severity_score"] >= threshold_severity
     triggered = is_near and is_severe
@@ -121,12 +139,14 @@ def monitor_hazard_events(
     monitored = []
 
     for event in events:
-        normalized = normalize_hazard_event(event)
+        event_district = str((event or {}).get("district") or "").strip()
         for safe_zone_name in safe_zone_names:
+            if event_district and event_district.lower() != str(safe_zone_name).lower():
+                continue
             monitored.append(
                 evaluate_safe_zone_status(
                     safe_zone_name,
-                    normalized,
+                    event,
                     threshold_distance_km=threshold_distance_km,
                     threshold_severity=threshold_severity,
                 )
@@ -149,7 +169,12 @@ def get_realtime_status_snapshot(
             "active_hazards": [],
             "alert_count": 0,
         }
+
         for event in hazard_events:
+            event_district = str((event or {}).get("district") or "").strip()
+            if not event_district or event_district.lower() != str(safe_zone_name).lower():
+                continue
+
             evaluation = evaluate_safe_zone_status(
                 safe_zone_name,
                 event,
@@ -177,15 +202,31 @@ def load_demo_event_feed() -> List[Dict[str, Any]]:
             "severity": "warning",
             "source": "SACHET",
             "distance_km": 6,
-            "warning": "River levels rising near a safe-zone corridor.",
+            "warning": "River levels rising near the district corridor.",
         },
         {
             "hazard_type": "storm",
             "district": "Tezpur",
             "severity": "severe",
             "source": "IMD",
-            "distance_km": 14,
-            "warning": "Wind gusts and downpours impacting roads.",
+            "distance_km": 12,
+            "warning": "Wind gusts and downpours impacting transport routes.",
+        },
+        {
+            "hazard_type": "landslide",
+            "district": "Karbi Anglong",
+            "severity": "warning",
+            "source": "IMD",
+            "distance_km": 9,
+            "warning": "Slope instability advisory for hill roads.",
+        },
+        {
+            "hazard_type": "cyclone",
+            "district": "Barpeta",
+            "severity": "severe",
+            "source": "IMD",
+            "distance_km": 12,
+            "warning": "Tidal surge risk along low-lying drainage lanes.",
         },
     ]
 

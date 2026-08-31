@@ -38,6 +38,16 @@ const RESOURCE_GROUPS = [
 let relocationRoute = null;
 let relocationMarkers = [];
 let alertDistricts = new Map();
+let warningMarkers = [];
+
+function clearWarningMarkers() {
+    warningMarkers.forEach((marker) => {
+        if (marker && map.hasLayer(marker)) {
+            map.removeLayer(marker);
+        }
+    });
+    warningMarkers = [];
+}
 
 function clearDistrictAlerts() {
     if (!geojsonLayer) return;
@@ -54,6 +64,7 @@ function clearDistrictAlerts() {
             fillOpacity: 0.65
         });
     });
+    clearWarningMarkers();
     alertDistricts.clear();
 }
 
@@ -85,6 +96,29 @@ function highlightAlertDistricts(zones = []) {
         });
         layer.bringToFront();
         alertDistricts.set(districtName, { status, count: zone?.alert_count || 0 });
+
+        const matchesWarning = (zone?.active_hazards || []).some((hazard) => {
+            const statusText = (hazard.status || "").toLowerCase();
+            return statusText === "warning" || statusText === "alert";
+        });
+
+        if (!matchesWarning) return;
+
+        const centroid = getDistrictCentroid(layer.feature);
+        if (!centroid) return;
+
+        const marker = L.marker([centroid.lat, centroid.lng], {
+            icon: L.divIcon({
+                className: "warning-marker-icon",
+                html: '<div style="background:#f59e0b;border:2px solid #7c2d12;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.25);">!</div>',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10],
+                popupAnchor: [0, -10]
+            })
+        }).addTo(map);
+
+        marker.bindPopup(`<strong>${districtName}</strong><br>${status.toUpperCase()} warning district`);
+        warningMarkers.push(marker);
     });
 }
 
@@ -913,13 +947,41 @@ async function loadPopulationReallocationDashboard() {
     }
 
     try {
+        const realtimeResponse = await fetch(`${API_URL}/api/realtime/safe-zone-status`);
+        const realtimeData = realtimeResponse.ok ? await realtimeResponse.json() : { safe_zones: [] };
+        const warningZones = (realtimeData.safe_zones || []).filter(zone => {
+            const activeHazards = zone.active_hazards || [];
+            return activeHazards.some(hazard => {
+                const source = (hazard.source || "").toUpperCase();
+                const status = (hazard.status || "").toLowerCase();
+                return source === "SACHET" && ["warning", "alert"].includes(status);
+            });
+        });
+
         const safeZonesResponse = await fetch(`${API_URL}/api/population-reallocation/safe-zones`);
         const safeZonesData = safeZonesResponse.ok ? await safeZonesResponse.json() : { safe_zones: [] };
+        const availableSafeZones = (safeZonesData.safe_zones || []).map(zone => ({
+            ...zone,
+            district: zone.district || zone.name || "Unknown District"
+        }));
+
+        const selectedRedZone = warningZones.length
+            ? warningZones[0].safe_zone
+            : (availableSafeZones[0]?.district || "Dibrugarh");
+
+        const selectedSafeZones = availableSafeZones.length
+            ? availableSafeZones.filter(zone => zone.district !== selectedRedZone).slice(0, 4)
+            : [];
 
         const payload = {
-            red_zone_name: "Red Zone A",
-            red_zone_population: 20000,
-            safe_zones: safeZonesData.safe_zones || []
+            red_zone_name: selectedRedZone,
+            red_zone_population: warningZones.length ? Math.max(15000, warningZones.reduce((sum, zone) => sum + (zone.alert_count || 0) * 5000, 0)) : 20000,
+            safe_zones: selectedSafeZones.length ? selectedSafeZones : [
+                { district: "Dibrugarh", capacity: 7000, current_population: 2000, available_capacity: 5000, risk_score: 0.2, road_accessibility: 0.9, medical_facilities: 0.8, food_water: 0.7, infrastructure_score: 0.8, distance_km: 26, travel_time_minutes: 45 },
+                { district: "Tezpur", capacity: 6000, current_population: 3500, available_capacity: 2500, risk_score: 0.3, road_accessibility: 0.85, medical_facilities: 0.6, food_water: 0.8, infrastructure_score: 0.7, distance_km: 38, travel_time_minutes: 60 },
+                { district: "Karbi Anglong", capacity: 5000, current_population: 1200, available_capacity: 3800, risk_score: 0.5, road_accessibility: 0.7, medical_facilities: 0.9, food_water: 0.5, infrastructure_score: 0.6, distance_km: 54, travel_time_minutes: 75 },
+                { district: "Barpeta", capacity: 8000, current_population: 4000, available_capacity: 4000, risk_score: 0.4, road_accessibility: 0.8, medical_facilities: 0.7, food_water: 0.9, infrastructure_score: 0.9, distance_km: 71, travel_time_minutes: 90 }
+            ]
         };
 
         const analyzeResponse = await fetch(`${API_URL}/api/population-reallocation/analyze`, {
@@ -936,33 +998,34 @@ async function loadPopulationReallocationDashboard() {
 
         const result = await analyzeResponse.json();
         const allocation = result.allocation || { allocations: [], remaining_population: 0, total_allocated: 0 };
+        const routeItems = Array.isArray(result.routes) ? result.routes : [];
 
         summaryEl.innerHTML = `
             <div class="card">
-                <span class="label">Red Zones</span>
-                <div class="value">1</div>
+                <span class="label">Warning Districts</span>
+                <div class="value">${warningZones.length ? warningZones.length : 1}</div>
             </div>
             <div class="card">
-                <span class="label">Affected Population</span>
-                <div class="value">${formatNumber(result.total_affected_population || 20000)}</div>
+                <span class="label">Affected District</span>
+                <div class="value">${selectedRedZone}</div>
             </div>
             <div class="card">
-                <span class="label">Population Requiring Evacuation</span>
-                <div class="value">${formatNumber(result.total_affected_population || 20000)}</div>
+                <span class="label">Population For Relocation</span>
+                <div class="value">${formatNumber(result.total_affected_population || payload.red_zone_population)}</div>
             </div>
             <div class="card">
-                <span class="label">Critical Zones</span>
-                <div class="value">${allocation.insufficient_capacity ? "Capacity Alert" : "1"}</div>
+                <span class="label">Recommended Routes</span>
+                <div class="value">${routeItems.length || allocation.allocations.length || 1}</div>
             </div>
         `;
 
         compareEl.innerHTML = `
             <div class="item-card">
-                <h3>Safe Zone Comparison</h3>
+                <h3>District Suitability Ranking</h3>
                 <ul class="metric-list">
                     ${(result.safe_zone_ranking || []).map(zone => `
                         <li>
-                            <strong>${zone.name}</strong> — Distance ${zone.distance_km || 0} km, Capacity ${formatNumber(zone.available_capacity || 0)}, Suitability ${zone.overall_suitability_score || 0}%
+                            <strong>${zone.district || zone.name}</strong> — Distance ${zone.distance_km || 0} km, Available Capacity ${formatNumber(zone.available_capacity || 0)}, Suitability ${zone.overall_suitability_score || 0}%
                         </li>
                     `).join("")}
                 </ul>
@@ -971,10 +1034,19 @@ async function loadPopulationReallocationDashboard() {
 
         planEl.innerHTML = `
             <div class="item-card">
-                <h3>Allocation Plan</h3>
+                <h3>Reallocation Routes</h3>
                 <ul class="metric-list">
-                    ${(allocation.allocations || []).map(item => `
-                        <li>${item.safe_zone} → ${item.assigned_population} people → ${item.travel_time_minutes || 0} min travel</li>
+                    ${(routeItems.length ? routeItems : (allocation.allocations || []).map(item => ({
+                        red_zone: selectedRedZone,
+                        safe_zone: item.safe_zone,
+                        route_type: "Primary",
+                        distance_km: item.travel_time_minutes || 0,
+                        estimated_travel_time_minutes: item.travel_time_minutes || 0,
+                        people_assigned: item.assigned_population
+                    }))).map(item => `
+                        <li>
+                            ${item.red_zone} → ${item.safe_zone} — ${item.route_type || "Primary"} route, ${item.estimated_travel_time_minutes || item.travel_time_minutes || 0} min, ${formatNumber(item.people_assigned || 0)} people
+                        </li>
                     `).join("")}
                 </ul>
                 ${allocation.warning ? `<div class="warning-banner">${allocation.warning}</div>` : ""}
@@ -983,11 +1055,11 @@ async function loadPopulationReallocationDashboard() {
 
         resourcesEl.innerHTML = `
             <div class="item-card">
-                <h3>Resource Requirements</h3>
+                <h3>District Resource Requirements</h3>
                 <ul class="metric-list">
                     ${(allocation.allocations || []).map(item => `
                         <li>
-                            <strong>${item.safe_zone}</strong>: Food ${(item.assigned_population * 0.75).toFixed(0)} kg/day, Water ${(item.assigned_population * 4.5).toFixed(0)} L/day, Shelter ${(item.assigned_population * 0.32).toFixed(0)} spaces
+                            <strong>${item.safe_zone}</strong>: Food ${(item.assigned_population * 0.75).toFixed(0)} kg/day, Water ${(item.assigned_population * 4.5).toFixed(0)} L/day, Shelter ${(item.assigned_population * 0.32).toFixed(0)} people
                         </li>
                     `).join("")}
                 </ul>
@@ -1028,7 +1100,13 @@ async function loadRealtimeMonitoring() {
         }
 
         const data = await response.json();
-        const zones = data.safe_zones || [];
+        const zones = (data.safe_zones || []).filter(zone => {
+            const activeHazards = zone.active_hazards || [];
+            return activeHazards.some(hazard => {
+                const status = (hazard.status || "").toLowerCase();
+                return ["warning", "alert"].includes(status);
+            });
+        });
 
         statusEl.innerHTML = zones.map(zone => `
             <div class="realtime-card">
@@ -1036,13 +1114,16 @@ async function loadRealtimeMonitoring() {
                 <div class="label">${zone.safe_zone}</div>
                 <div class="value">${zone.alert_count || 0} active alerts</div>
             </div>
-        `).join("") || "<div class='realtime-card'><span class='label'>No active hazards</span></div>";
+        `).join("") || "<div class='realtime-card'><span class='label'>No warning districts</span></div>";
 
         highlightAlertDistricts(zones);
 
         const alertItems = [];
         zones.forEach(zone => {
             (zone.active_hazards || []).forEach(hazard => {
+                const status = (hazard.status || "").toLowerCase();
+                if (!["warning", "alert"].includes(status)) return;
+
                 alertItems.push(`
                     <div class="realtime-alert">
                         <strong>${zone.safe_zone}</strong> is under <strong>${hazard.status}</strong> conditions from ${hazard.source}.\
@@ -1054,7 +1135,7 @@ async function loadRealtimeMonitoring() {
 
         alertsEl.innerHTML = alertItems.length
             ? alertItems.join("")
-            : "<div class='realtime-alert'>No hazard alerts detected. The system is in a stable near-real-time monitoring state.</div>";
+            : "<div class='realtime-alert'>No warning districts currently active. The system is in a stable near-real-time monitoring state.</div>";
 
     } catch (error) {
         console.error("Realtime monitoring failed:", error);
@@ -1078,20 +1159,29 @@ async function connectRealtimeWebSocket() {
                 const statusEl = document.getElementById("realtime-status");
                 const alertsEl = document.getElementById("realtime-alerts");
                 if (statusEl && alertsEl) {
-                    const zones = message.payload.safe_zones || [];
+                    const zones = (message.payload.safe_zones || []).filter(zone => {
+                        const activeHazards = zone.active_hazards || [];
+                        return activeHazards.some(hazard => {
+                            const status = (hazard.status || "").toLowerCase();
+                            return ["warning", "alert"].includes(status);
+                        });
+                    });
                     statusEl.innerHTML = zones.map(zone => `
                         <div class="realtime-card">
                             <span class="badge ${zone.status || "stable"}">${zone.status || "stable"}</span>
                             <div class="label">${zone.safe_zone}</div>
                             <div class="value">${zone.alert_count || 0} active alerts</div>
                         </div>
-                    `).join("") || "<div class='realtime-card'><span class='label'>No active hazards</span></div>";
+                    `).join("") || "<div class='realtime-card'><span class='label'>No warning districts</span></div>";
 
                     highlightAlertDistricts(zones);
 
                     const alertItems = [];
                     zones.forEach(zone => {
                         (zone.active_hazards || []).forEach(hazard => {
+                            const status = (hazard.status || "").toLowerCase();
+                            if (!["warning", "alert"].includes(status)) return;
+
                             alertItems.push(`
                                 <div class="realtime-alert">
                                     <strong>${zone.safe_zone}</strong> is under <strong>${hazard.status}</strong> conditions from ${hazard.source}. ${hazard.warning}
@@ -1102,7 +1192,7 @@ async function connectRealtimeWebSocket() {
 
                     alertsEl.innerHTML = alertItems.length
                         ? alertItems.join("")
-                        : "<div class='realtime-alert'>No hazard alerts detected. The system is in a stable near-real-time monitoring state.</div>";
+                        : "<div class='realtime-alert'>No warning districts currently active. The system is in a stable near-real-time monitoring state.</div>";
                 }
             }
         };
