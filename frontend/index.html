@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Disaster Relocation System
+    </title>
+
+
+    <!-- Leaflet CSS -->
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
+
+    <!-- Our CSS -->
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
+
+    <header>
+
+        <h1>
+            Disaster Relocation System
+        </h1>
+
+        <p>
+            Assam Disaster Risk Map
+        </p>
+
+    </header>
+
+
+    <!-- =====================================================
+         MAP
+         ===================================================== -->
+
+    <div id="map"></div>
+
+
+    <!-- =====================================================
+         DISTRICT INFORMATION PANEL
+         ===================================================== -->
+
+    <div
+        id="district-panel"
+        class="district-panel"
+    ></div>
+
+
+    <section
+        id="reallocation-dashboard"
+        class="reallocation-dashboard"
+    >
+        <div class="reallocation-header">
+            <h2>Population Reallocation</h2>
+            <span>Live allocation overview</span>
+        </div>
+
+        <div id="reallocation-summary" class="summary-grid"></div>
+        <div id="reallocation-compare" class="compare-grid"></div>
+        <div id="reallocation-plan" class="plan-grid"></div>
+        <div id="reallocation-resources" class="resources-grid"></div>
+    </section>
+
+
+    <!-- =====================================================
+         LEAFLET JS
+         ===================================================== -->
+
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    ></script>
+
+
+    <!-- =====================================================
+         OUR APP
+         ===================================================== -->
+
+    <script
+        src="app.js"
+    ></script>
+
+
+</body>
+
+</html>

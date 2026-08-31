@@ -1,0 +1,700 @@
+/* ============================================================
+   GLOBAL
+   ============================================================ */
+
+* {
+    box-sizing: border-box;
+}
+
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+
+    width: 100%;
+    height: 100%;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    background: #f1f5f9;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+header {
+
+    background: #0f172a;
+
+    color: white;
+
+    padding: 24px 36px;
+
+    height: 105px;
+}
+
+
+header h1 {
+
+    margin: 0;
+
+    font-size: 32px;
+
+    font-weight: 700;
+}
+
+
+header p {
+
+    margin: 6px 0 0;
+
+    font-size: 18px;
+
+    color: #cbd5e1;
+}
+
+
+/* ============================================================
+   MAP
+   ============================================================ */
+
+#map {
+
+    position: absolute;
+
+    top: 125px;
+    left: 22px;
+    right: 22px;
+    bottom: 20px;
+
+    border-radius: 16px;
+
+    overflow: hidden;
+
+    border: 2px solid #1e293b;
+
+    box-shadow:
+        0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+
+/* ============================================================
+   DISTRICT INFORMATION PANEL
+   ============================================================ */
+
+.district-panel {
+
+    position: fixed;
+
+    top: 125px;
+
+    right: 35px;
+
+    width: 390px;
+
+    max-height:
+        calc(100vh - 150px);
+
+    overflow-y: auto;
+
+    background: white;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.30);
+
+    z-index: 2000;
+
+    padding: 24px;
+
+    transform:
+        translateX(450px);
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transition:
+        transform 0.3s ease,
+        opacity 0.3s ease;
+}
+
+
+.district-panel.active {
+
+    transform:
+        translateX(0);
+
+    opacity: 1;
+
+    pointer-events: auto;
+}
+
+
+.route-section {
+    margin-top: 20px;
+}
+
+
+.route-card {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    border: 1px solid #bfdbfe;
+    border-radius: 14px;
+    padding: 16px;
+}
+
+
+.route-pill {
+    display: inline-block;
+    background: #2563eb;
+    color: white;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+
+.route-heading {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 8px;
+}
+
+
+.route-card p {
+    margin: 0 0 12px;
+    color: #334155;
+    line-height: 1.5;
+}
+
+
+.route-metrics {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #1d4ed8;
+    flex-wrap: wrap;
+}
+
+
+.resource-stack {
+    display: grid;
+    gap: 12px;
+}
+
+
+.resource-group {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+
+
+.resource-group h4 {
+    margin: 0 0 10px;
+    font-size: 14px;
+    color: #0f172a;
+}
+
+
+.resource-group ul {
+    margin: 0;
+    padding-left: 18px;
+    color: #334155;
+    line-height: 1.6;
+}
+
+
+.reallocation-dashboard {
+    position: fixed;
+    left: 20px;
+    bottom: 20px;
+    width: min(420px, calc(100% - 40px));
+    max-height: 48vh;
+    overflow-y: auto;
+    background: rgba(15, 23, 42, 0.96);
+    color: white;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 18px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.32);
+    z-index: 1500;
+    padding: 18px;
+}
+
+
+.reallocation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+    gap: 12px;
+}
+
+
+.reallocation-header h2 {
+    margin: 0;
+    font-size: 24px;
+}
+
+
+.reallocation-header span {
+    color: #cbd5e1;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+
+.summary-grid,
+.compare-grid,
+.plan-grid,
+.resources-grid {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+
+.summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+
+.card {
+    background: rgba(30, 41, 59, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+
+.card .label {
+    display: block;
+    color: #cbd5e1;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+
+.card .value {
+    font-size: 22px;
+    font-weight: 700;
+    color: white;
+}
+
+
+.compare-grid,
+.plan-grid,
+.resources-grid {
+    grid-template-columns: 1fr;
+}
+
+
+.item-card {
+    background: rgba(15, 23, 42, 0.7);
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    padding: 12px;
+}
+
+
+.item-card h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    color: white;
+}
+
+
+.metric-list {
+    margin: 0;
+    padding-left: 18px;
+    color: #e2e8f0;
+    line-height: 1.6;
+    font-size: 13px;
+}
+
+
+.warning-banner {
+    background: rgba(127, 29, 29, 0.8);
+    border: 1px solid rgba(252, 165, 165, 0.6);
+    color: #fee2e2;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    font-size: 13px;
+}
+
+
+/* ============================================================
+   PANEL HEADER
+   ============================================================ */
+
+.district-panel-header {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: flex-start;
+
+    margin-bottom: 18px;
+}
+
+
+.panel-label {
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    letter-spacing: 1.5px;
+
+    color: #64748b;
+
+    margin-bottom: 5px;
+}
+
+
+.district-panel h2 {
+
+    margin: 0;
+
+    font-size: 29px;
+
+    line-height: 1.1;
+
+    color: #0f172a;
+}
+
+
+/* ============================================================
+   CLOSE BUTTON
+   ============================================================ */
+
+.close-panel {
+
+    width: 38px;
+
+    height: 38px;
+
+    border: none;
+
+    border-radius: 50%;
+
+    background: #f1f5f9;
+
+    color: #475569;
+
+    font-size: 27px;
+
+    line-height: 35px;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+.close-panel:hover {
+
+    background: #e2e8f0;
+
+    color: #0f172a;
+
+    transform: scale(1.05);
+}
+
+
+/* ============================================================
+   RISK BANNER
+   ============================================================ */
+
+.risk-banner {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 17px;
+
+    border-radius: 13px;
+
+    margin-bottom: 25px;
+
+    color: white;
+}
+
+
+.risk-banner.high {
+
+    background: #ef4444;
+}
+
+
+.risk-banner.medium {
+
+    background: #f59e0b;
+}
+
+
+.risk-banner.low {
+
+    background: #22c55e;
+}
+
+
+.risk-banner.unknown {
+
+    background: #64748b;
+}
+
+
+.risk-label {
+
+    display: block;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    letter-spacing: 1px;
+
+    opacity: 0.85;
+
+    margin-bottom: 3px;
+}
+
+
+.risk-banner > div:first-child strong {
+
+    font-size: 23px;
+}
+
+
+.risk-score {
+
+    text-align: right;
+}
+
+
+.risk-score span {
+
+    display: block;
+
+    font-size: 11px;
+
+    opacity: 0.85;
+
+    margin-bottom: 2px;
+}
+
+
+.risk-score strong {
+
+    font-size: 20px;
+}
+
+
+/* ============================================================
+   INFORMATION SECTIONS
+   ============================================================ */
+
+.info-section {
+
+    margin-bottom: 25px;
+}
+
+
+.info-section h3 {
+
+    margin: 0 0 12px;
+
+    font-size: 17px;
+
+    color: #334155;
+}
+
+
+/* ============================================================
+   INFORMATION GRID
+   ============================================================ */
+
+.info-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 10px;
+}
+
+
+/* ============================================================
+   INFORMATION CARD
+   ============================================================ */
+
+.info-card {
+
+    background: #f8fafc;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 11px;
+
+    padding: 13px;
+}
+
+
+.info-card span {
+
+    display: block;
+
+    font-size: 11px;
+
+    color: #64748b;
+
+    margin-bottom: 5px;
+}
+
+
+.info-card strong {
+
+    display: block;
+
+    font-size: 17px;
+
+    color: #0f172a;
+
+    word-break: break-word;
+}
+
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+
+.district-panel::-webkit-scrollbar {
+
+    width: 6px;
+}
+
+
+.district-panel::-webkit-scrollbar-track {
+
+    background: transparent;
+}
+
+
+.district-panel::-webkit-scrollbar-thumb {
+
+    background: #cbd5e1;
+
+    border-radius: 10px;
+}
+
+
+.district-panel::-webkit-scrollbar-thumb:hover {
+
+    background: #94a3b8;
+}
+
+
+/* ============================================================
+   LEAFLET CONTROLS
+   ============================================================ */
+
+.leaflet-control-zoom {
+
+    border-radius: 8px !important;
+
+    overflow: hidden;
+}
+
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+    header {
+
+        height: 90px;
+
+        padding: 18px 20px;
+    }
+
+
+    header h1 {
+
+        font-size: 24px;
+    }
+
+
+    header p {
+
+        font-size: 14px;
+    }
+
+
+    #map {
+
+        top: 105px;
+
+        left: 10px;
+
+        right: 10px;
+
+        bottom: 10px;
+    }
+
+
+    .district-panel {
+
+        top: auto;
+
+        bottom: 20px;
+
+        left: 15px;
+
+        right: 15px;
+
+        width: auto;
+
+        max-height: 70vh;
+
+        transform:
+            translateY(500px);
+    }
+
+
+    .district-panel.active {
+
+        transform:
+            translateY(0);
+    }
+
+}
