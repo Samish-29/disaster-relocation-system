@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 
@@ -189,8 +190,26 @@ def load_demo_event_feed() -> List[Dict[str, Any]]:
     ]
 
 
+def load_assam_district_names() -> List[str]:
+    zones_file = Path(__file__).resolve().parents[2] / "data" / "processed" / "zones" / "assam_risk_zones.geojson"
+    if not zones_file.exists():
+        return ["Tinsukia", "Dibrugarh", "Sivasagar", "Jorhat", "Golaghat", "Nagaon", "Kamrup", "Dhubri", "Barpeta", "Darrang"]
+
+    try:
+        with zones_file.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        districts = []
+        for feature in data.get("features", []):
+            district_name = (feature.get("properties") or {}).get("district")
+            if district_name:
+                districts.append(str(district_name))
+        return districts or ["Tinsukia", "Dibrugarh", "Sivasagar", "Jorhat", "Golaghat", "Nagaon", "Kamrup", "Dhubri", "Barpeta", "Darrang"]
+    except (TypeError, ValueError, OSError):
+        return ["Tinsukia", "Dibrugarh", "Sivasagar", "Jorhat", "Golaghat", "Nagaon", "Kamrup", "Dhubri", "Barpeta", "Darrang"]
+
+
 def load_demo_safe_zone_names() -> List[str]:
-    return ["Safe Zone A", "Safe Zone B", "Safe Zone C", "Safe Zone D"]
+    return load_assam_district_names()
 
 
 def build_demo_realtime_update() -> Dict[str, Any]:

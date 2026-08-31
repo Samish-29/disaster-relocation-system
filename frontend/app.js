@@ -37,6 +37,56 @@ const RESOURCE_GROUPS = [
 
 let relocationRoute = null;
 let relocationMarkers = [];
+let alertDistricts = new Map();
+
+function clearDistrictAlerts() {
+    if (!geojsonLayer) return;
+
+    geojsonLayer.eachLayer((layer) => {
+        const districtName = layer.feature?.properties?.district;
+        if (!districtName) return;
+
+        const base = districtStyle(layer.feature);
+        layer.setStyle({
+            ...base,
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.65
+        });
+    });
+    alertDistricts.clear();
+}
+
+function highlightAlertDistricts(zones = []) {
+    if (!geojsonLayer) return;
+
+    clearDistrictAlerts();
+
+    const active = new Set();
+    (zones || []).forEach((zone) => {
+        const safeZoneName = zone.safe_zone || "";
+        if (!safeZoneName) return;
+        active.add(safeZoneName);
+    });
+
+    geojsonLayer.eachLayer((layer) => {
+        const districtName = layer.feature?.properties?.district;
+        if (!districtName || !active.has(districtName)) return;
+
+        const zone = (zones || []).find((item) => (item.safe_zone || "") === districtName);
+        const status = zone?.status || "stable";
+        const alertColor = status === "alert" ? "#b91c1c" : status === "warning" ? "#f59e0b" : "#3b82f6";
+
+        layer.setStyle({
+            weight: 3,
+            color: "#111827",
+            fillColor: alertColor,
+            fillOpacity: 0.85
+        });
+        layer.bringToFront();
+        alertDistricts.set(districtName, { status, count: zone?.alert_count || 0 });
+    });
+}
 
 // ============================================================
 // CREATE MAP
@@ -988,6 +1038,8 @@ async function loadRealtimeMonitoring() {
             </div>
         `).join("") || "<div class='realtime-card'><span class='label'>No active hazards</span></div>";
 
+        highlightAlertDistricts(zones);
+
         const alertItems = [];
         zones.forEach(zone => {
             (zone.active_hazards || []).forEach(hazard => {
@@ -1034,6 +1086,8 @@ async function connectRealtimeWebSocket() {
                             <div class="value">${zone.alert_count || 0} active alerts</div>
                         </div>
                     `).join("") || "<div class='realtime-card'><span class='label'>No active hazards</span></div>";
+
+                    highlightAlertDistricts(zones);
 
                     const alertItems = [];
                     zones.forEach(zone => {
